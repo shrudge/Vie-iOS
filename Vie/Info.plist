@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+        <key>UISceneConfigurations</key>
+        <dict/>
+    </dict>
+    <key>Privacy - Camera Usage Description</key>
+    <string>Camera access is needed to detect colors in real-time and help identify colors for colorblind users.</string>
+    <key>Privacy - Photo Library Usage Description</key>
+    <string>Photo library access is needed to analyze colors in your saved photos.</string>
+    <key>Privacy - Photo Library Additions Usage Description</key>
+    <string>We need permission to save captured photos to your photo library.</string>
+</dict>
+</plist>
