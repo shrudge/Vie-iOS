@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": "1.0.0",
+    "itemInfoEntries": {
+        "39F74B0E-CE53-4172-B5AD-2B7BA5A8E529": {
+            "author": "com.apple.CoreML",
+            "description": "External FeatureDescription Overlay",
+            "name": "FeatureDescriptions.json",
+            "path": "com.apple.CoreML/FeatureDescriptions.json"
+        },
+        "9C0072F1-6808-498F-AD63-05D303337269": {
+            "author": "com.apple.CoreML",
+            "description": "External Metadata Overlay",
+            "name": "Metadata.json",
+            "path": "com.apple.CoreML/Metadata.json"
+        },
+        "C47DB1E4-43E1-41FC-B7E6-A12214FD9D3A": {
+            "author": "com.apple.CoreML",
+            "description": "CoreML Model Specification",
+            "name": "Vie2model.mlmodel",
+            "path": "com.apple.CoreML/Vie2model.mlmodel"
+        }
+    },
+    "rootModelIdentifier": "C47DB1E4-43E1-41FC-B7E6-A12214FD9D3A"
+}
