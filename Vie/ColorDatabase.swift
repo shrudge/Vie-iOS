@@ -1,70 +1,45 @@
 import Foundation
 
-struct RGB: Codable {
-    let r: Int
-    let g: Int
-    let b: Int
-}
-
-struct HSL: Codable {
-    let h: Double
-    let s: Double
-    let l: Double
-}
-
-struct CMYK: Codable {
-    let c: Double
-    let m: Double
-    let y: Double
-    let k: Double
-}
-
-struct ColorData: Codable {
-    let name: String
-    let hex: String
-    let rgb: RGB
-    let hsl: HSL
-    let cmyk: CMYK
-}
-
 struct ColorDatabase {
-    static var colors: [ColorData] = []
+    static var colorMap: [String: ColorData] = [:]
     
     static func loadColors(from jsonFile: String) {
         if let url = Bundle.main.url(forResource: jsonFile, withExtension: "json") {
             do {
                 let data = try Data(contentsOf: url)
-                colors = try JSONDecoder().decode([ColorData].self, from: data)
+                let colorsWrapper = try JSONDecoder().decode(ColorsWrapper.self, from: data)
+                colorMap = Dictionary(uniqueKeysWithValues: colorsWrapper.colors.map { color in
+                    (color.hex, color)
+                })
+                print("Loaded \(colorMap.count) colors")
             } catch {
                 print("Error loading colors: \(error)")
             }
         }
     }
     
-    static func findClosestColor(to hex: String) -> ColorData? {
-        let inputRGB = hexToRGB(hex)
-        return colors.min { color1, color2 in
-            colorDistance(from: inputRGB, to: color1.rgb) < colorDistance(from: inputRGB, to: color2.rgb)
-        }
-    }
-    
-    private static func hexToRGB(_ hex: String) -> RGB {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        if hexSanitized.hasPrefix("#") {
-            hexSanitized.remove(at: hexSanitized.startIndex)
+    static func findClosestHexColor(to inputHex: String) -> String? {
+        print("Finding closest color for hex: \(inputHex)")
+        var closestColor: String? = nil
+        var minDistance: Double = Double.infinity
+        
+        let inputRGB = hexToRGB(inputHex)
+        
+        for (_, color) in colorMap {
+            let colorRGB = hexToRGB(color.hex)
+            let distance = colorDistance(from: inputRGB, to: colorRGB)
+            
+            if distance < minDistance {
+                minDistance = distance
+                closestColor = color.name
+                print("New closest color: \(color.name) with distance: \(distance)")
+            }
         }
         
-        var rgbValue: UInt64 = 0
-        Scanner(string: hexSanitized).scanHexInt64(&rgbValue)
-        
-        return RGB(
-            r: Int((rgbValue & 0xFF0000) >> 16),
-            g: Int((rgbValue & 0x00FF00) >> 8),
-            b: Int(rgbValue & 0x0000FF)
-        )
+        return closestColor
     }
     
-    private static func colorDistance(from rgb1: RGB, to rgb2: RGB) -> Double {
+    private static func colorDistance(from rgb1: (r: Int, g: Int, b: Int), to rgb2: (r: Int, g: Int, b: Int)) -> Double {
         let rMean = Double(rgb1.r + rgb2.r) / 2.0
         let r = Double(rgb1.r - rgb2.r)
         let g = Double(rgb1.g - rgb2.g)
@@ -77,17 +52,20 @@ struct ColorDatabase {
         return sqrt(weightR*r*r + weightG*g*g + weightB*b*b)
     }
     
-    static func getColorsByFamily() -> [String: [ColorData]] {
-        var familyGroups: [String: [ColorData]] = [:]
-        
-        for color in colors {
-            let family = ColorFamilies.categorizeColor(color)
-            if familyGroups[family] == nil {
-                familyGroups[family] = []
-            }
-            familyGroups[family]?.append(color)
+    static func hexToRGB(_ hex: String) -> (r: Int, g: Int, b: Int) {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if hexSanitized.hasPrefix("#") {
+            hexSanitized.remove(at: hexSanitized.startIndex)
         }
         
-        return familyGroups
+        var rgb: UInt64 = 0
+        Scanner(string: hexSanitized).scanHexInt64(&rgb)
+        
+        return (
+            r: Int((rgb & 0xFF0000) >> 16),
+            g: Int((rgb & 0x00FF00) >> 8),
+            b: Int(rgb & 0x0000FF)
+        )
     }
 } 
+

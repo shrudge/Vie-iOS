@@ -15,5 +15,7 @@
     <string>Photo library access is needed to analyze colors in your saved photos.</string>
     <key>Privacy - Photo Library Additions Usage Description</key>
     <string>We need permission to save captured photos to your photo library.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Camera access is needed to detect colors in real-time.</string>
 </dict>
 </plist>

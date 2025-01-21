@@ -2,9 +2,8 @@ import SwiftUI
 import AVFoundation
 
 struct CameraView: View {
-    @StateObject private var cameraManager = CameraManager()
-    @State private var detectedColor: String = "No color detected"
-    @State private var preciseBoxPosition: CGPoint = .zero
+    @EnvironmentObject var cameraManager: CameraManager
+    @State private var showPermissionAlert = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -12,87 +11,64 @@ struct CameraView: View {
                 // Camera preview
                 if let previewLayer = cameraManager.previewLayer {
                     CameraPreviewRepresentable(previewLayer: previewLayer)
-                        .ignoresSafeArea()
-                        .onAppear {
-                            preciseBoxPosition = CGPoint(
-                                x: geometry.size.width / 2,
-                                y: geometry.size.height / 2
-                            )
-                        }
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .edgesIgnoringSafeArea(.all)
                 } else {
-                    Color.black
-                        .ignoresSafeArea()
+                    Color.red
+                        .edgesIgnoringSafeArea(.all)
                         .onAppear {
                             print("Preview layer is nil")
                         }
                 }
                 
-                // Precise mode indicator
-                if cameraManager.isPreciseMode {
-                    PreciseModeIndicator()
-                        .position(preciseBoxPosition)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    preciseBoxPosition = value.location
-                                }
-                        )
-                }
+
                 
-                // Color display
+                // Controls
                 VStack {
                     Spacer()
-                    Text(detectedColor)
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(24)
-                        .padding(.bottom)
-                }
-                
-                // Precise mode toggle button
-                VStack {
-                    Spacer()
+                    
                     HStack {
                         Spacer()
-                        Button(action: {
-                            cameraManager.isPreciseMode.toggle()
-                            if cameraManager.isPreciseMode {
-                                preciseBoxPosition = CGPoint(
-                                    x: geometry.size.width / 2,
-                                    y: geometry.size.height / 2
-                                )
-                            }
-                        }) {
-                            Image(systemName: cameraManager.isPreciseMode ? "xmark" : "scope")
-                                .font(.system(size: 24))
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Circle().fill(.ultraThinMaterial))
-                                .shadow(radius: 4)
-                        }
-                        .padding()
                     }
                 }
             }
         }
+        .edgesIgnoringSafeArea(.all)
         .onAppear {
-            print("CameraView appeared")
-            cameraManager.startColorDetection { color in
-                detectedColor = color
-            }
+            checkCameraPermission()
         }
-        .alert("Camera Access Required", isPresented: $cameraManager.showPermissionAlert) {
-            Button("Open Settings", action: openSettings)
+        .alert("Camera Permission Required", isPresented: $showPermissionAlert) {
+            Button("Go to Settings", action: openSettings)
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("Please grant camera access in Settings to use this feature.")
+            Text("Please allow camera access in Settings to use this feature.")
+        }
+    }
+    
+    private func checkCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            cameraManager.startSession()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                if granted {
+                    DispatchQueue.main.async {
+                        cameraManager.startSession()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showPermissionAlert = true
+        @unknown default:
+            break
         }
     }
     
     private func openSettings() {
-        if let settingsUrl = URL(string: UIApplication.openSettingsURLString),
-           UIApplication.shared.canOpenURL(settingsUrl) {
-            UIApplication.shared.open(settingsUrl)
+        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+            if UIApplication.shared.canOpenURL(settingsUrl) {
+                UIApplication.shared.open(settingsUrl)
+            }
         }
     }
 }
@@ -102,28 +78,29 @@ struct CameraPreviewRepresentable: UIViewRepresentable {
     
     func makeUIView(context: Context) -> UIView {
         print("Creating preview view")
-        let view = UIView(frame: UIScreen.main.bounds)
+        let view = UIView()
+        view.backgroundColor = .black
         
-        // Configure the preview layer
-        previewLayer.frame = view.frame
         previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.connection?.videoOrientation = .portrait
-        
-        // Add preview layer to view's layer hierarchy
         view.layer.addSublayer(previewLayer)
-        
         print("Preview layer added to view hierarchy")
         return view
     }
     
     func updateUIView(_ uiView: UIView, context: Context) {
-        print("Updating preview view frame")
+        print("Updating preview view frame: \(uiView.frame)")
         DispatchQueue.main.async {
-            previewLayer.frame = uiView.bounds
+            previewLayer.frame = uiView.layer.bounds
+            
+            // Ensure the preview layer is in portrait mode
+            if let connection = previewLayer.connection {
+                connection.videoOrientation = .portrait // Set to portrait
+            }
         }
     }
 }
 
 #Preview {
     CameraView()
+        .environmentObject(CameraManager())
 } 

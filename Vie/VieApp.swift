@@ -9,6 +9,11 @@ import SwiftUI
 
 @main
 struct VieApp: App {
+    init() {
+        print("Loading color database...")
+        ColorDatabase.loadColors(from: "colors")
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

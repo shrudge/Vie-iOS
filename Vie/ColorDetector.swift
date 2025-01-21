@@ -1,8 +1,18 @@
 import UIKit
 import CoreImage
 import Vision
+import CoreML
 
 class ColorDetector {
+    static let model: Vie2model = {
+        do {
+            let config = MLModelConfiguration()
+            return try Vie2model(configuration: config)
+        } catch {
+            fatalError("Couldn't create Vie2model: \(error)")
+        }
+    }()
+    
     static func detectDominantColor(in image: UIImage, completion: @escaping (String) -> Void) {
         guard let cgImage = image.cgImage else {
             completion("Unable to process image")
@@ -37,74 +47,38 @@ class ColorDetector {
             return
         }
         
-        // Get color name
-        let colorName = nameForColor(averageColor)
-        completion(colorName)
-    }
-    
-    static func nameForColor(_ color: UIColor) -> String {
+        // Get RGB values
         var red: CGFloat = 0
         var green: CGFloat = 0
         var blue: CGFloat = 0
         var alpha: CGFloat = 0
         
-        color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        averageColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         
-        let threshold: CGFloat = 0.4
+        // Convert to Int64 for model input
+        let redInt = Int64(red * 255)
+        let greenInt = Int64(green * 255)
+        let blueInt = Int64(blue * 255)
         
-        if max(red, green, blue) < threshold {
-            return "Black"
+        // Use CoreML model to predict color
+        do {
+            let prediction = try model.prediction(
+                red: redInt,
+                green: greenInt,
+                blue: blueInt
+            )
+            completion(prediction.label)
+        } catch {
+            print("Prediction error: \(error)")
+            completion("Error predicting color")
         }
         
-        if min(red, green, blue) > 0.8 {
-            return "White"
-        }
-        
-        if red > threshold && green < threshold && blue < threshold {
-            return "Red"
-        }
-        
-        if green > threshold && red < threshold && blue < threshold {
-            return "Green"
-        }
-        
-        if blue > threshold && red < threshold && green < threshold {
-            return "Blue"
-        }
-        
-        if red > threshold && green > threshold && blue < threshold {
-            return "Yellow"
-        }
-        
-        if red > threshold && blue > threshold && green < threshold {
-            return "Purple"
-        }
-        
-        if green > threshold && blue > threshold && red < threshold {
-            return "Cyan"
-        }
-        
-        if red > threshold && green > threshold * 0.7 && blue < threshold {
-            return "Orange"
-        }
-        
-        if red > threshold * 0.7 && green < threshold && blue > threshold {
-            return "Pink"
-        }
-        
-        if red > threshold * 0.5 && green > threshold * 0.3 && blue < threshold {
-            return "Brown"
-        }
-        
-        if red > threshold * 0.5 && green > threshold * 0.5 && blue > threshold * 0.5 {
-            return "Grey"
-        }
-        
-        return "Unknown"
     }
+    
 }
 
-// Add extension for UIImage to calculate average color
+
+// Keep the UIImage extension for average color calculation
 extension UIImage {
     var averageColor: UIColor? {
         guard let inputImage = CIImage(image: self) else { return nil }
@@ -133,4 +107,5 @@ extension UIImage {
                       blue: CGFloat(bitmap[2]) / 255,
                       alpha: CGFloat(bitmap[3]) / 255)
     }
-} 
+}
+
